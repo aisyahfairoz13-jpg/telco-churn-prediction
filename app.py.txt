@@ -1,0 +1,102 @@
+import streamlit as st
+import pandas as pd
+import joblib
+
+# Load model dan scaler
+model = joblib.load("churn_model (1).pkl")
+scaler = joblib.load("scaler.pkl")
+
+st.title("Customer Churn Prediction")
+
+st.write(
+    "Prediksi kemungkinan pelanggan melakukan churn menggunakan model Random Forest"
+)
+
+# Input user
+tenure = st.number_input(
+    "Tenure (bulan)",
+    min_value=0,
+    max_value=100,
+    value=12
+)
+
+monthly = st.number_input(
+    "Monthly Charges",
+    min_value=0.0,
+    value=70.0
+)
+
+total = st.number_input(
+    "Total Charges",
+    min_value=0.0,
+    value=1000.0
+)
+
+contract = st.selectbox(
+    "Contract",
+    [
+        "Month-to-month",
+        "One year",
+        "Two year"
+    ]
+)
+
+# Mapping contract
+contract_map = {
+    "Month-to-month": 0,
+    "One year": 1,
+    "Two year": 2
+}
+
+# Feature engineering
+avg_spend = total / (tenure + 1)
+
+if st.button("Predict"):
+
+    # Isi fitur lain dengan nilai default
+    data = pd.DataFrame({
+        "gender":[0],
+        "SeniorCitizen":[0],
+        "Partner":[0],
+        "Dependents":[0],
+        "tenure":[tenure],
+        "PhoneService":[1],
+        "MultipleLines":[0],
+        "InternetService":[1],
+        "OnlineSecurity":[0],
+        "OnlineBackup":[0],
+        "DeviceProtection":[0],
+        "TechSupport":[0],
+        "StreamingTV":[0],
+        "StreamingMovies":[0],
+        "Contract":[contract_map[contract]],
+        "PaperlessBilling":[1],
+        "PaymentMethod":[2],
+        "MonthlyCharges":[monthly],
+        "TotalCharges":[total],
+        "AvgMonthlySpend":[avg_spend]
+    })
+
+    cols = [
+        "tenure",
+        "MonthlyCharges",
+        "TotalCharges",
+        "AvgMonthlySpend"
+    ]
+
+    data[cols] = scaler.transform(data[cols])
+
+    pred = model.predict(data)
+
+    if pred[0] == 1:
+        st.error("Customer berpotensi CHURN")
+    else:
+        st.success("Customer diprediksi TETAP BERLANGGANAN")
+
+st.markdown("---")
+st.subheader("Performa Model")
+
+st.write("Accuracy : 79.77%")
+st.write("Precision : 66.06%")
+st.write("Recall : 48.65%")
+st.write("F1 Score : 55.95%")
